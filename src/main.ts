@@ -20,6 +20,7 @@ let y = 0;
 
 const lines: Array<Array<{ x: number; y: number }>> = [];
 let currentLine: Array<{ x: number; y: number }> = [];
+const redoStack: Array<Array<{ x: number; y: number }>> = [];
 
 function dispatchDrawingChangedEvent() {
   const event = new CustomEvent("drawing-changed");
@@ -28,7 +29,7 @@ function dispatchDrawingChangedEvent() {
 
 function redrawCanvas() {
   appCanvasContext.clearRect(0, 0, appCanvas.width, appCanvas.height);
-  
+
   lines.forEach((line) => {
     for (let i = 1; i < line.length; i++) {
       drawLine(appCanvasContext, line[i - 1].x, line[i - 1].y, line[i].x, line[i].y);
@@ -67,6 +68,8 @@ window.addEventListener("mouseup", () => {
     lines.push(currentLine);
     currentLine = [];
     isDrawing = false;
+
+    redoStack.length = 0;
     dispatchDrawingChangedEvent();
   }
 });
@@ -84,8 +87,34 @@ function drawLine(context: CanvasRenderingContext2D, x1: number, y1: number, x2:
 const clearButton = document.createElement("button");
 clearButton.innerHTML = "Clear";
 app.append(clearButton);
-
 clearButton.addEventListener("click", () => {
   lines.length = 0;
+  redoStack.length = 0;
   dispatchDrawingChangedEvent();
+});
+
+const undoButton = document.createElement("button");
+undoButton.innerHTML = "Undo";
+app.append(undoButton);
+undoButton.addEventListener("click", () => {
+  if (lines.length > 0) {
+    const lastLine = lines.pop();
+    if (lastLine) {
+      redoStack.push(lastLine);  
+    }
+    dispatchDrawingChangedEvent();
+  }
+});
+
+const redoButton = document.createElement("button");
+redoButton.innerHTML = "Redo";
+app.append(redoButton);
+redoButton.addEventListener("click", () => {
+  if (redoStack.length > 0) {
+    const redoLine = redoStack.pop(); 
+    if (redoLine) {
+      lines.push(redoLine);
+    }
+    dispatchDrawingChangedEvent();
+  }
 });
