@@ -95,8 +95,6 @@ button:focus-visible {
 }
 
 canvas {
-  width: 256px;
-  height: 256px;
   border: solid black 5px;
   border-radius: 30px;
   background-color: white;
