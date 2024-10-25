@@ -19,6 +19,8 @@ let currentThickness = 1;
 let mouseX: number | null = null;
 let mouseY: number | null = null;
 let toolPreview: ToolPreview | null = null;
+let currentSticker: Sticker | null = null;
+const stickers: Sticker[] = [];
 
 class Line {
   private points: Array<{ x: number; y: number }> = [];
@@ -81,6 +83,32 @@ class ToolPreview {
   }
 }
 
+class Sticker {
+  private emoji: string;
+  private x: number;
+  private y: number;
+
+  constructor(emoji: string, x: number, y: number) {
+    this.emoji = emoji;
+    this.x = x;
+    this.y = y;
+  }
+
+  getEmoji(): string {
+    return this.emoji;
+  }
+
+  drag(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+
+  display(context: CanvasRenderingContext2D) {
+    context.font = "24px Arial";
+    context.fillText(this.emoji, this.x, this.y);
+  }
+}
+
 const lines: Array<Line> = [];
 let currentLine: Line | null = null;
 const redoStack: Array<Line> = [];
@@ -106,8 +134,16 @@ function redrawCanvas() {
     currentLine.display(ctx);
   }
 
+  stickers.forEach((sticker) => {
+    sticker.display(ctx);
+  });
+
   if (toolPreview && !isDrawing) {
     toolPreview.draw(ctx);
+  }
+
+  if (currentSticker) {
+    currentSticker.display(ctx);
   }
 }
 
@@ -122,9 +158,17 @@ canvas.addEventListener("tool-moved", () => {
 canvas.addEventListener("mousedown", (e) => {
   const x = e.offsetX;
   const y = e.offsetY;
-  isDrawing = true;
-  currentLine = new Line(x, y, currentThickness);
-  toolPreview = null;
+
+  if (currentSticker) {
+    const newSticker = new Sticker(currentSticker.getEmoji(), x, y);
+    stickers.push(newSticker);
+    currentSticker = null;
+    dispatchDrawingChangedEvent();
+  } else {
+    isDrawing = true;
+    currentLine = new Line(x, y, currentThickness);
+    toolPreview = null;
+  }
 });
 
 canvas.addEventListener("mousemove", (e) => {
@@ -135,12 +179,17 @@ canvas.addEventListener("mousemove", (e) => {
     currentLine.drag(newX, newY);
     dispatchDrawingChangedEvent();
   } else {
-    if (!toolPreview) {
-      toolPreview = new ToolPreview(currentThickness, newX, newY);
+    if (currentSticker) {
+      currentSticker.drag(newX, newY);
+      dispatchToolMovedEvent();
     } else {
-      toolPreview.updatePosition(newX, newY);
+      if (!toolPreview) {
+        toolPreview = new ToolPreview(currentThickness, newX, newY);
+      } else {
+        toolPreview.updatePosition(newX, newY);
+      }
+      dispatchToolMovedEvent();
     }
-    dispatchToolMovedEvent();
   }
 });
 
@@ -154,18 +203,22 @@ window.addEventListener("mouseup", () => {
   }
 });
 
+const buttonContainer = document.createElement("div");
+buttonContainer.id = "buttonContainer";
+
 const clearButton = document.createElement("button");
 clearButton.innerHTML = "Clear";
-app.append(clearButton);
+buttonContainer.append(clearButton);
 clearButton.addEventListener("click", () => {
   lines.length = 0;
+  stickers.length = 0;
   redoStack.length = 0;
   dispatchDrawingChangedEvent();
 });
 
 const undoButton = document.createElement("button");
 undoButton.innerHTML = "Undo";
-app.append(undoButton);
+buttonContainer.append(undoButton);
 undoButton.addEventListener("click", () => {
   if (lines.length > 0) {
     const lastLine = lines.pop();
@@ -178,7 +231,7 @@ undoButton.addEventListener("click", () => {
 
 const redoButton = document.createElement("button");
 redoButton.innerHTML = "Redo";
-app.append(redoButton);
+buttonContainer.append(redoButton);
 redoButton.addEventListener("click", () => {
   if (redoStack.length > 0) {
     const redoLine = redoStack.pop();
@@ -189,16 +242,29 @@ redoButton.addEventListener("click", () => {
   }
 });
 
+const stickerEmojis = ["🦦", "🗣️", "🥴"];
+
+stickerEmojis.forEach((emoji) => {
+  const stickerButton = document.createElement("button");
+  stickerButton.innerHTML = emoji;
+  buttonContainer.append(stickerButton);
+
+  stickerButton.addEventListener("click", () => {
+    currentSticker = new Sticker(emoji, 0, 0);
+    dispatchToolMovedEvent();
+  });
+});
+
 const thinButton = document.createElement("button");
 thinButton.innerHTML = "Thin";
 thinButton.classList.add("toolButton");
 thinButton.classList.add("selectedTool");
-app.append(thinButton);
+buttonContainer.append(thinButton);
 
 const thickButton = document.createElement("button");
 thickButton.innerHTML = "Thick";
 thickButton.classList.add("toolButton");
-app.append(thickButton);
+buttonContainer.append(thickButton);
 
 thinButton.addEventListener("click", () => {
   currentThickness = 1;
@@ -228,3 +294,5 @@ toolPreview = new ToolPreview(
   canvas.height / 2
 );
 dispatchToolMovedEvent();
+
+app.append(buttonContainer);

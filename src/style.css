@@ -28,11 +28,13 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  flex-direction: column;
 }
 
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+  margin-bottom: 1rem;
 }
 
 #app {
@@ -84,6 +86,13 @@ button:focus-visible {
 .toolButton.selectedTool {
   background-color: greenyellow;
   color: black;
+}
+
+#buttonContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 @media (prefers-color-scheme: light) {
