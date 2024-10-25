@@ -16,6 +16,9 @@ app.append(canvas);
 
 let isDrawing = false;
 let currentThickness = 1;
+let mouseX: number | null = null;
+let mouseY: number | null = null;
+let toolPreview: ToolPreview | null = null;
 
 class Line {
   private points: Array<{ x: number; y: number }> = [];
@@ -48,12 +51,47 @@ class Line {
   }
 }
 
+class ToolPreview {
+  private thickness: number;
+  private x: number;
+  private y: number;
+
+  constructor(thickness: number, x: number, y: number) {
+    this.thickness = thickness;
+    this.x = x;
+    this.y = y;
+  }
+
+  updatePosition(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+
+  updateThickness(thickness: number) {
+    this.thickness = thickness;
+  }
+
+  draw(context: CanvasRenderingContext2D) {
+    context.beginPath();
+    context.arc(this.x, this.y, this.thickness / 2, 0, Math.PI * 2);
+    context.strokeStyle = "gray";
+    context.lineWidth = 1;
+    context.stroke();
+    context.closePath();
+  }
+}
+
 const lines: Array<Line> = [];
 let currentLine: Line | null = null;
 const redoStack: Array<Line> = [];
 
 function dispatchDrawingChangedEvent() {
   const event = new CustomEvent("drawing-changed");
+  canvas.dispatchEvent(event);
+}
+
+function dispatchToolMovedEvent() {
+  const event = new CustomEvent("tool-moved");
   canvas.dispatchEvent(event);
 }
 
@@ -67,9 +105,17 @@ function redrawCanvas() {
   if (currentLine) {
     currentLine.display(ctx);
   }
+
+  if (toolPreview && !isDrawing) {
+    toolPreview.draw(ctx);
+  }
 }
 
 canvas.addEventListener("drawing-changed", () => {
+  redrawCanvas();
+});
+
+canvas.addEventListener("tool-moved", () => {
   redrawCanvas();
 });
 
@@ -78,14 +124,23 @@ canvas.addEventListener("mousedown", (e) => {
   const y = e.offsetY;
   isDrawing = true;
   currentLine = new Line(x, y, currentThickness);
+  toolPreview = null;
 });
 
 canvas.addEventListener("mousemove", (e) => {
+  const newX = e.offsetX;
+  const newY = e.offsetY;
+
   if (isDrawing && currentLine) {
-    const newX = e.offsetX;
-    const newY = e.offsetY;
     currentLine.drag(newX, newY);
     dispatchDrawingChangedEvent();
+  } else {
+    if (!toolPreview) {
+      toolPreview = new ToolPreview(currentThickness, newX, newY);
+    } else {
+      toolPreview.updatePosition(newX, newY);
+    }
+    dispatchToolMovedEvent();
   }
 });
 
@@ -149,10 +204,27 @@ thinButton.addEventListener("click", () => {
   currentThickness = 1;
   thinButton.classList.add("selectedTool");
   thickButton.classList.remove("selectedTool");
+
+  if (toolPreview) {
+    toolPreview.updateThickness(currentThickness);
+    dispatchToolMovedEvent();
+  }
 });
 
 thickButton.addEventListener("click", () => {
   currentThickness = 5;
   thickButton.classList.add("selectedTool");
   thinButton.classList.remove("selectedTool");
+
+  if (toolPreview) {
+    toolPreview.updateThickness(currentThickness);
+    dispatchToolMovedEvent();
+  }
 });
+
+toolPreview = new ToolPreview(
+  currentThickness,
+  canvas.width / 2,
+  canvas.height / 2
+);
+dispatchToolMovedEvent();
