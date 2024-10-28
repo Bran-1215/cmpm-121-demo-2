@@ -15,7 +15,7 @@ const ctx = canvas.getContext("2d")!;
 app.append(canvas);
 
 let isDrawing = false;
-let currentThickness = 1;
+let currentThickness = 3;
 let mouseX: number | null = null;
 let mouseY: number | null = null;
 let toolPreview: ToolPreview | null = null;
@@ -23,9 +23,9 @@ let currentSticker: Sticker | null = null;
 const stickers: Sticker[] = [];
 
 const stickerData: { emoji: string }[] = [
-  { emoji: "🦦" },
-  { emoji: "🗣️" },
-  { emoji: "🥴" },
+  { emoji: "🦗" },
+  { emoji: "💚" },
+  { emoji: "🌱" },
 ];
 
 class Line {
@@ -290,7 +290,7 @@ thickButton.classList.add("toolButton");
 buttonContainer.append(thickButton);
 
 thinButton.addEventListener("click", () => {
-  currentThickness = 1;
+  currentThickness = 3;
   thinButton.classList.add("selectedTool");
   thickButton.classList.remove("selectedTool");
 
@@ -301,7 +301,7 @@ thinButton.addEventListener("click", () => {
 });
 
 thickButton.addEventListener("click", () => {
-  currentThickness = 5;
+  currentThickness = 6;
   thickButton.classList.add("selectedTool");
   thinButton.classList.remove("selectedTool");
 
