@@ -20,6 +20,7 @@ let mouseX: number | null = null;
 let mouseY: number | null = null;
 let toolPreview: ToolPreview | null = null;
 let currentSticker: Sticker | null = null;
+let currentColor: string = getRandomColor();
 const stickers: Sticker[] = [];
 
 const stickerData: { emoji: string }[] = [
@@ -31,10 +32,12 @@ const stickerData: { emoji: string }[] = [
 class Line {
   private points: Array<{ x: number; y: number }> = [];
   private thickness: number;
+  private color: string;
 
-  constructor(initialX: number, initialY: number, thickness: number) {
+  constructor(initialX: number, initialY: number, thickness: number, color: string) {
     this.points.push({ x: initialX, y: initialY });
     this.thickness = thickness;
+    this.color = color;
   }
 
   drag(x: number, y: number) {
@@ -45,7 +48,7 @@ class Line {
     if (this.points.length < 2) return;
 
     context.lineWidth = this.thickness;
-    context.strokeStyle = "black";
+    context.strokeStyle = this.color;
 
     for (let i = 1; i < this.points.length; i++) {
       const prevPoint = this.points[i - 1];
@@ -63,11 +66,13 @@ class ToolPreview {
   private thickness: number;
   private x: number;
   private y: number;
+  private color: string;
 
-  constructor(thickness: number, x: number, y: number) {
+  constructor(thickness: number, x: number, y: number, color: string = "gray") {
     this.thickness = thickness;
     this.x = x;
     this.y = y;
+    this.color = color;
   }
 
   updatePosition(x: number, y: number) {
@@ -79,10 +84,14 @@ class ToolPreview {
     this.thickness = thickness;
   }
 
+  updateColor(color: string) {
+    this.color = color;
+  }
+
   draw(context: CanvasRenderingContext2D) {
     context.beginPath();
     context.arc(this.x, this.y, this.thickness / 2, 0, Math.PI * 2);
-    context.strokeStyle = "gray";
+    context.strokeStyle = this.color;
     context.lineWidth = 1;
     context.stroke();
     context.closePath();
@@ -93,11 +102,20 @@ class Sticker {
   private emoji: string;
   private x: number;
   private y: number;
+  private rotation: number = 0;
 
   constructor(emoji: string, x: number, y: number) {
     this.emoji = emoji;
     this.x = x;
     this.y = y;
+  }
+
+  setRotation(rotation: number) {
+    this.rotation = rotation;
+  }
+
+  getRotation(): number {
+    return this.rotation;
   }
 
   getEmoji(): string {
@@ -110,8 +128,12 @@ class Sticker {
   }
 
   display(context: CanvasRenderingContext2D) {
+    context.save();
+    context.translate(this.x, this.y);
+    context.rotate((this.rotation * Math.PI) / 180);
     context.font = "24px Arial";
-    context.fillText(this.emoji, this.x, this.y);
+    context.fillText(this.emoji, 0, 0);
+    context.restore();
   }
 }
 
@@ -153,6 +175,15 @@ function redrawCanvas() {
   }
 }
 
+function getRandomColor(): string {
+  const colors = ["#FF5733", "#33FF57", "#3357FF", "#F3FF33", "#FF33EC"];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+function getRandomRotation(): number {
+  return Math.random() * 360;
+}
+
 canvas.addEventListener("drawing-changed", () => {
   redrawCanvas();
 });
@@ -167,12 +198,14 @@ canvas.addEventListener("mousedown", (e) => {
 
   if (currentSticker) {
     const newSticker = new Sticker(currentSticker.getEmoji(), x, y);
+    newSticker.setRotation(currentSticker.getRotation());
     stickers.push(newSticker);
     currentSticker = null;
     dispatchDrawingChangedEvent();
   } else {
     isDrawing = true;
-    currentLine = new Line(x, y, currentThickness);
+    currentColor = getRandomColor();
+    currentLine = new Line(x, y, currentThickness, currentColor);
     toolPreview = null;
   }
 });
@@ -190,7 +223,7 @@ canvas.addEventListener("mousemove", (e) => {
       dispatchToolMovedEvent();
     } else {
       if (!toolPreview) {
-        toolPreview = new ToolPreview(currentThickness, newX, newY);
+        toolPreview = new ToolPreview(currentThickness, newX, newY, currentColor);
       } else {
         toolPreview.updatePosition(newX, newY);
       }
@@ -255,6 +288,7 @@ stickerData.forEach((sticker) => {
 
   stickerButton.addEventListener("click", () => {
     currentSticker = new Sticker(sticker.emoji, 0, 0);
+    currentSticker.setRotation(getRandomRotation());
     dispatchToolMovedEvent();
   });
 });
@@ -273,6 +307,7 @@ addCustomStickerButton.addEventListener("click", () => {
 
     customButton.addEventListener("click", () => {
       currentSticker = new Sticker(customEmoji, 0, 0);
+      currentSticker.setRotation(getRandomRotation());
       dispatchToolMovedEvent();
     });
   }
@@ -294,8 +329,10 @@ thinButton.addEventListener("click", () => {
   thinButton.classList.add("selectedTool");
   thickButton.classList.remove("selectedTool");
 
+  currentColor = getRandomColor();
   if (toolPreview) {
     toolPreview.updateThickness(currentThickness);
+    toolPreview.updateColor(currentColor);
     dispatchToolMovedEvent();
   }
 });
@@ -305,8 +342,10 @@ thickButton.addEventListener("click", () => {
   thickButton.classList.add("selectedTool");
   thinButton.classList.remove("selectedTool");
 
+  currentColor = getRandomColor();
   if (toolPreview) {
     toolPreview.updateThickness(currentThickness);
+    toolPreview.updateColor(currentColor);
     dispatchToolMovedEvent();
   }
 });
@@ -340,7 +379,8 @@ exportButton.addEventListener("click", () => {
 toolPreview = new ToolPreview(
   currentThickness,
   canvas.width / 2,
-  canvas.height / 2
+  canvas.height / 2,
+  currentColor
 );
 dispatchToolMovedEvent();
 
