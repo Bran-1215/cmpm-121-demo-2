@@ -22,6 +22,12 @@ let toolPreview: ToolPreview | null = null;
 let currentSticker: Sticker | null = null;
 const stickers: Sticker[] = [];
 
+const stickerData: { emoji: string }[] = [
+  { emoji: "🦦" },
+  { emoji: "🗣️" },
+  { emoji: "🥴" },
+];
+
 class Line {
   private points: Array<{ x: number; y: number }> = [];
   private thickness: number;
@@ -242,17 +248,34 @@ redoButton.addEventListener("click", () => {
   }
 });
 
-const stickerEmojis = ["🦦", "🗣️", "🥴"];
-
-stickerEmojis.forEach((emoji) => {
+stickerData.forEach((sticker) => {
   const stickerButton = document.createElement("button");
-  stickerButton.innerHTML = emoji;
+  stickerButton.innerHTML = sticker.emoji;
   buttonContainer.append(stickerButton);
 
   stickerButton.addEventListener("click", () => {
-    currentSticker = new Sticker(emoji, 0, 0);
+    currentSticker = new Sticker(sticker.emoji, 0, 0);
     dispatchToolMovedEvent();
   });
+});
+
+const addCustomStickerButton = document.createElement("button");
+addCustomStickerButton.innerHTML = "Add Custom Sticker";
+buttonContainer.append(addCustomStickerButton);
+
+addCustomStickerButton.addEventListener("click", () => {
+  const customEmoji = prompt("Enter a custom sticker emoji or text:", "💩");
+  if (customEmoji) {
+    stickerData.push({ emoji: customEmoji });
+    const customButton = document.createElement("button");
+    customButton.innerHTML = customEmoji;
+    buttonContainer.append(customButton);
+
+    customButton.addEventListener("click", () => {
+      currentSticker = new Sticker(customEmoji, 0, 0);
+      dispatchToolMovedEvent();
+    });
+  }
 });
 
 const thinButton = document.createElement("button");
