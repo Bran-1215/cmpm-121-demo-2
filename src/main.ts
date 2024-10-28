@@ -311,6 +311,32 @@ thickButton.addEventListener("click", () => {
   }
 });
 
+const exportButton = document.createElement("button");
+exportButton.innerHTML = "Export";
+buttonContainer.append(exportButton);
+
+exportButton.addEventListener("click", () => {
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = 1024;
+  exportCanvas.height = 1024;
+  const exportCtx = exportCanvas.getContext("2d")!;
+
+  exportCtx.scale(4, 4);
+
+  lines.forEach((line) => {
+    line.display(exportCtx);
+  });
+
+  stickers.forEach((sticker) => {
+    sticker.display(exportCtx);
+  });
+
+  const anchor = document.createElement("a");
+  anchor.href = exportCanvas.toDataURL("image/png");
+  anchor.download = "sketchpad.png";
+  anchor.click();
+});
+
 toolPreview = new ToolPreview(
   currentThickness,
   canvas.width / 2,
